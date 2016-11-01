@@ -1,3 +1,3 @@
-It's not cheating if you created it yourself
-============================================
-I will put more stuff here soon
+#It's not cheating if you made it yourself!
+
+* [Git cheatsheet](http://github.com/taurijuhkam/Cheatsheets/git.md)

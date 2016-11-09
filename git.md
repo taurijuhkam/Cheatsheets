@@ -29,3 +29,11 @@ Show all existing branches                          | `git branch -av`
 Create new branch                                   | `git branch <branch name>`
 Delete a branch                                     | `git branch -d <branch name>`
 Merge into current HEAD branch                      | `git merge <branch_name>`
+Discard all local changes in current directory      | `git reset --hard HEAD`
+Discard local changes in a specific file            | `git checkout HEAD <file>`
+Revert a commit (new commit with opposite changes)  | `git revert <commit>`
+Reset to a previous commit and discard all changes  | `git reset --hard <commit>`
+Reset to a previous commit and preserve all changes 
+as uncommitted changes                              | `git reset <commit>`
+Reset to a previous commit and preserve uncommitted 
+local changes                                       | `git reset --keep <commit>`

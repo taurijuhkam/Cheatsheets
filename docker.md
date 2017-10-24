@@ -1,5 +1,5 @@
-#Docker
-##Basic commands
+# Docker
+## Basic commands
 
 * `docker ps` - list running containers. add `-a` to list all containers.
 * `docker images` - list docker images. all `-a` to list intermediate images
@@ -11,8 +11,8 @@
 [DockerHub](http://hub.docker.com) can be used to find images.
 
 
-###Building your own docker image
-####Provisioning your image
+### Building your own docker image
+#### Provisioning your image
 A Dockerfile is used to configure the images, images themselves are used to run in containers.
 * `touch Dockerfile` - make a new Dockerfile
 * `FROM` - which image the current image will be based on
@@ -23,12 +23,12 @@ will be be saved to the image.
 * `CMD` - commands to run on the image after provisioning. It's the command the container runs by default 
 when launching the built image. Can have only one `CMD`
 
-####Running your image
+#### Running your image
 * `docker build -t [image-tag] .` - run in the dir where the dockerfile is located to build the provisioned image.
   * `-t [image-tag]` - give the image a tag (name) for easier running later on
   * `.` - build in current directory. Could be replaced with a path
 
-####Tagging and pushing to Dockerhub
+#### Tagging and pushing to Dockerhub
 * `docker tag [image_id] repo/name:latest` - tag the image with repo/name and version
   * `docker login`
   * `docker push [repo/name]` - push the repo to Dockerhub

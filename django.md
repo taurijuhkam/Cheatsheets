@@ -67,12 +67,13 @@ class Person(models.Model):
 
 **PS:** Always use `__str__(self):` and return something that identifies the object
 **PPS:** For models to work, the app has to be added to the projects settings.py INSTALLED_APPS, by adding the class in
-my_app.apps.MyAppConfig.
+my_app.apps.MyAppConfig.  
 
+[About the database API](https://docs.djangoproject.com/en/1.11/topics/db/queries/) -[Field lookups](https://docs.djangoproject.com/en/1.11/topics/db/queries/#field-lookups) 
 
 ## General Best Practices
 * An app should do one thing and do it well
 * For the sake of clarity, the app's name should be a plural version of the app's main model. e.g. Events (app) --> Event (model)
 and if possible, follow the URL structure (and vice versa): http://www.my-project.com/events/
 * Keep the number of Models per app as small as possible. If there are a lot of models then you are probably breaking rule #1
-* For repeating fields, use Model Inheritance and Abstract Base Models (A class that inherits from models.Model and other models inherit from this new class)
+* For repeating fields, use Model Inheritance and Abstract Base Models (A class that inherits from models.Model and other models inherit from this new class) - tables will not be created for the ABM's, but for their children

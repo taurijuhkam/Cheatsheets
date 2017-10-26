@@ -93,7 +93,7 @@ But do not create god objects - if applicable, move to (stateless!!) helper func
 
 ## Views
 * Use get_object_or_404() in views! This handles exceptions with grace and usually does what is expected
-* Use built-in class based views (CBV) wherever possible - (Class based views reference)[https://docs.djangoproject.com/en/1.11/ref/class-based-views/]. Or, err on the side of function-based views (FBV), if this things get too complex.    
+* Use built-in class based views (CBV) wherever possible - [Class based views reference](https://docs.djangoproject.com/en/1.11/ref/class-based-views/). Or, err on the side of function-based views (FBV), if this things get too complex.    
     ```python
     from django.http import HttpResponse
     from django.views.generic import View
@@ -115,6 +115,16 @@ But do not create god objects - if applicable, move to (stateless!!) helper func
 * Keep business logic out of views - views are for presentation logic. Refer to fat models. Makes it easier to expand later on.  
 * **Remember:** views are functions, they take a request and return a response. What happens in between is up to us;
 
+## Forms
+* Forms require two things - where and how. `action=''` and `method=(get|post)`
+* `django.forms.ModelForm` for creating forms from models
+    ```python
+    class MediaPlanForm(forms.ModelForm):
+        class Meta:
+            model = MediaPlan
+            exclude = []
+    ```
+* For basic CRUD, there are generic views `CreateView, UpdateView, Deleteview` - define template, model, fields and success_url and basically good to go. See `mediaplans.views` and `mediaplan.urls` for clarifications.
 
 ## Templates
 #### Variables

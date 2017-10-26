@@ -51,6 +51,23 @@ source /usr/local/bin/virtualenvwrapper.sh
 5. Check results  
     `python manage.py runserver` - http://localhost:8000/url_path/ should now display 'Hello world'
 
+* Use URL-namespaces to more easily reference the url's where needed
+```python
+urlpatterns += [
+    url(r'^tastings/', include('tastings.urls', namespace='tastings')),
+]
+
+# In views:
+def get_details(self):
+    return reverse('tastings:detail', #tastings.url.detail
+    kwargs={'pk': self.object.pk})
+
+# In templates
+{% url 'tastings:detail' taste.pk %}
+```
+
+
+
 ## Models
 ```python
 # my_app/models.py
@@ -69,7 +86,67 @@ class Person(models.Model):
 **PPS:** For models to work, the app has to be added to the projects settings.py INSTALLED_APPS, by adding the class in
 my_app.apps.MyAppConfig.  
 
+* **Fat models** - Keep data-related code (e.g. getting some filtered data, complex inserts) in models, not in views or templates.
+But do not create god objects - if applicable, move to (stateless!!) helper functions etc.
+
 [About the database API](https://docs.djangoproject.com/en/1.11/topics/db/queries/) -[Field lookups](https://docs.djangoproject.com/en/1.11/topics/db/queries/#field-lookups) 
+
+## Views
+* Use get_object_or_404() in views! This handles exceptions with grace and usually does what is expected
+* Use built-in class based views wherever possible - (Class based views reference)[https://docs.djangoproject.com/en/1.11/ref/class-based-views/]. Or, err on the side of function-based views, if this things get too complex.
+
+## Templates
+#### Variables
+In Django templates, the context is passed in as a dict-like object. The values can be all sorts of python objects - dicts, objects, lists, etc. Lookups for dicts, objects and lists is done using dot notation, so this works in templates:  
+```python
+
+class TestObject(object):
+    def __init__(self, foo):
+        self.foo = foo
+
+context = {
+    'title_text': 'My site is cool',
+    'headcount': {'male': 10, 'female': 15},
+    'sample_object': TestObject('kala'),
+    'sample_list': ['zero', 'one', 'two', 'three'],
+    'html': '<h1>Hello</h1>'
+}
+```
+```html
+<div>{{ title_text }}</div> 
+Outputs: My site is cool
+<div>{{ headcount.female }}</div> 
+Outputs: 15
+<div>{{ sample_object.foo }}</div> 
+Outputs: kala
+<div>{{ sample_list.1 }}</div> 
+Outputs: one
+```
+
+#### Tags
+Tags provide arbitrary logic in templates - e.g. for loops, if statements etc.
+e.g. generating a html list:
+```html
+<ul>
+{% for item in sample_list %}
+    <li>{{ item }}</li>
+{% endfor %}
+</ul>
+```
+
+#### Filters
+Filters transform the values of variables and tag arguments. E.g. converting to titlecase or allowing HTML to be rendered instead of escaped
+```html
+<div>{{ title_text|title }}</div> 
+Outputs: My Site Is Cool 
+<div>{{ html }}</div> 
+Outputs: <h1>Hello</h1> 
+<div>{{ html|safe }}</div> 
+Outputs: Hello (as actual h1 element) 
+
+```
+
+[Template language overview](https://docs.djangoproject.com/en/1.11/topics/templates/#the-django-template-language)
 
 ## General Best Practices
 * An app should do one thing and do it well

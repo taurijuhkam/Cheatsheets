@@ -93,7 +93,28 @@ But do not create god objects - if applicable, move to (stateless!!) helper func
 
 ## Views
 * Use get_object_or_404() in views! This handles exceptions with grace and usually does what is expected
-* Use built-in class based views wherever possible - (Class based views reference)[https://docs.djangoproject.com/en/1.11/ref/class-based-views/]. Or, err on the side of function-based views, if this things get too complex.
+* Use built-in class based views (CBV) wherever possible - (Class based views reference)[https://docs.djangoproject.com/en/1.11/ref/class-based-views/]. Or, err on the side of function-based views (FBV), if this things get too complex.    
+    ```python
+    from django.http import HttpResponse
+    from django.views.generic import View
+
+    # The simplest FBV
+    def simplest_view(request):
+        # Business logic goes here
+        return HttpResponse('FBV')
+
+    # The simplest CBV
+    class SimplestView(View):
+        def get(self, request, *args, **kwargs):
+            # Business logic goes here
+            return HttpResponse('CBV')
+    ```
+    (See how Django FBVs are HTTP method neutral, but Django CBVs require specific
+    HTTP method declaration.)
+
+* Keep business logic out of views - views are for presentation logic. Refer to fat models. Makes it easier to expand later on.  
+* **Remember:** views are functions, they take a request and return a response. What happens in between is up to us;
+
 
 ## Templates
 #### Variables
@@ -147,6 +168,19 @@ Outputs: Hello (as actual h1 element)
 ```
 
 [Template language overview](https://docs.djangoproject.com/en/1.11/topics/templates/#the-django-template-language)
+
+## Helper functions
+* User helper functions to perform checks or validations on the requests - less attributes and validations can be reused
+```python
+def check_rights(request):
+    if request.user.is_allowed or request.user.is_staff:
+        request.is_valid = True
+        return request
+    
+    # Return a HTTP 403 back to the user
+    raise PermissionDenied
+```
+We can also use this to e.g. add custom errors to the request object etc.
 
 ## General Best Practices
 * An app should do one thing and do it well

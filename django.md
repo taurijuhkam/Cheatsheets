@@ -90,6 +90,28 @@ my_app.apps.MyAppConfig.
 But do not create god objects - if applicable, move to (stateless!!) helper functions etc.
 
 [About the database API](https://docs.djangoproject.com/en/1.11/topics/db/queries/) -[Field lookups](https://docs.djangoproject.com/en/1.11/topics/db/queries/#field-lookups) 
+* [Traversing relationships](https://docs.djangoproject.com/en/1.11/topics/db/examples/many_to_one/)
+* Database API examples:
+    ```python
+    # Get all rows from Media model
+    Media.objects.all()
+
+    # Get an object by an attribute
+    Media.objects.get(pk=1)  # Primary key
+    Media.objects.get(name='Google')
+
+    # Getting column values of the record with dot notation
+    g.id
+    >> 1
+    # Traverse foreign keys
+    mp = Mediaplan.objects.all()[0]
+    mp.media.name
+    >> 'Facebook'
+
+    # Filter across joins (notice the dunder!)
+    Mediaplan.objects.filter(media__pk=1)
+
+    ```
 
 ## Views
 * Use get_object_or_404() in views! This handles exceptions with grace and usually does what is expected
@@ -113,7 +135,8 @@ But do not create god objects - if applicable, move to (stateless!!) helper func
     HTTP method declaration.)
 
 * Keep business logic out of views - views are for presentation logic. Refer to fat models. Makes it easier to expand later on.  
-* **Remember:** views are functions, they take a request and return a response. What happens in between is up to us;
+* **Remember:** views are functions, they take a request and return a response. What happens in between is up to us  
+* If defining a `success_url` for generic CBV's, use `reverse_lazy()` - since URLConf is loaded later, then using `reverse()` will result in a traceback
 
 ## Forms
 * Forms require two things - where and how. `action=''` and `method=(get|post)`
@@ -177,7 +200,9 @@ Outputs: Hello (as actual h1 element)
 
 ```
 
-[Template language overview](https://docs.djangoproject.com/en/1.11/topics/templates/#the-django-template-language)
+[Template language overview](https://docs.djangoproject.com/en/1.11/topics/templates/#the-django-template-language)  
+
+* When using a field with choices in template, the human-readable name can be outputted with `{{ object.get_FIELDNAME_display }}`
 
 ## Helper functions
 * User helper functions to perform checks or validations on the requests - less attributes and validations can be reused

@@ -223,3 +223,9 @@ We can also use this to e.g. add custom errors to the request object etc.
 and if possible, follow the URL structure (and vice versa): http://www.my-project.com/events/
 * Keep the number of Models per app as small as possible. If there are a lot of models then you are probably breaking rule #1
 * For repeating fields, use Model Inheritance and Abstract Base Models (A class that inherits from models.Model and other models inherit from this new class) - tables will not be created for the ABM's, but for their children
+
+
+# TODO:
+* Get Familiar with the methods that classes use and in which order. e.g. overwriting `dispatch()`
+* Static file handling and ajax requests
+* ManyToMany fields

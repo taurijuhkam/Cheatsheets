@@ -138,6 +138,35 @@ But do not create god objects - if applicable, move to (stateless!!) helper func
 * **Remember:** views are functions, they take a request and return a response. What happens in between is up to us  
 * If defining a `success_url` for generic CBV's, use `reverse_lazy()` - since URLConf is loaded later, then using `reverse()` will result in a traceback
 
+##### Class Based Views
+* All CBV's at base level should inherit from `django.views.generic.View`
+* [Detailed descriptions of GCBVs](http://ccbv.co.uk/)
+* Nifty trickwhen overriding methods - write custom logig, then give the resolution back to the generic view with super;
+    ```python
+    from django.contrib.auth.mixins import LoginRequiredMixin 
+    from django.views.generic import CreateView
+    from .models import Flavor
+    class FlavorCreateView(LoginRequiredMixin, CreateView): 
+        model = Flavor
+       fields = ['title', 'slug', 'scoops_remaining']
+
+    def form_valid(self, form):
+        # Do custom logic here
+        return super(FlavorCreateView, self).form_valid(form)
+    ```
+* For views that require logging in, we can use the LoginRequiredMixin instead of messing with the decorators:
+    ```python
+    from django.contrib.auth.mixins import LoginRequiredMixin
+
+    class FlavorCreateView(LoginRequiredMixin, CreateView):
+        # Do stuff
+    ```
+* When inheriting from `django.views.generic.View`, we have access to different request methods e.g:  
+`def get(); def post()`  
+and have the logic there. We could replicate the same functionality in FBV's with  
+ `if request.method == "GET" | "POST"` etc...  
+but CBV's are in that way cleaner.
+
 ## Forms
 * Forms require two things - where and how. `action=''` and `method=(get|post)`
 * `django.forms.ModelForm` for creating forms from models
@@ -202,6 +231,66 @@ Outputs: Hello (as actual h1 element)
 
 [Template language overview](https://docs.djangoproject.com/en/1.11/topics/templates/#the-django-template-language)  
 
+##### Static files
+```html
+<!-- include staticfiles in template -->
+{% static load %}
+
+<script src="{% static 'js/script.js' %}"></script>
+<img src="{% static 'img/img.jpg' %}"></img>
+```
+
+##### AJAX Requests
+```javascript
+// Use js-cookie lib to get the csrf token
+var csrftoken = Cookies.get('csrftoken');
+
+// Ajax Setup
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+//set the token in header
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+// Actual ajax request
+$('.deleteIcon').on('click', function() {
+    var selectedPlan = $(this).attr('data-id');
+
+      $.ajax({
+        url: '/delete/' + selectedPlan,
+        data: {},
+        dataType: 'json',
+        success: function (data) {
+            console.log('success');
+            $('#'+selectedPlan).remove();
+        }
+      });
+});
+```
+
+In the view function, overwrite the `dispatch()` method to handle ajax requests and respond with JSON
+```python
+from django.http import JsonResponse
+
+    def dispatch(self, *args, **kwargs):
+        resp = super(MediaPlanDeleteView, self).dispatch(*args, **kwargs)
+        if self.request.is_ajax():
+            self.delete(*args, **kwargs) # Actually call the delete method to delete stuff
+            response_data = {"result": "ok"}
+            return JsonResponse(response_data)
+        else:
+            return resp
+
+```
+
 * When using a field with choices in template, the human-readable name can be outputted with `{{ object.get_FIELDNAME_display }}`
 
 ## Helper functions
@@ -226,6 +315,7 @@ and if possible, follow the URL structure (and vice versa): http://www.my-projec
 
 
 # TODO:
-* Get Familiar with the methods that classes use and in which order. e.g. overwriting `dispatch()`
-* Static file handling and ajax requests
 * ManyToMany fields
+* User model and logins
+* Testing django
+* mixins and auth/contib module. messages

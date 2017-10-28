@@ -178,6 +178,72 @@ but CBV's are in that way cleaner.
     ```
 * For basic CRUD, there are generic views `CreateView, UpdateView, Deleteview` - define template, model, fields and success_url and basically good to go. See `mediaplans.views` and `mediaplan.urls` for clarifications.
 
+* **Custom form field validations** - Django gives us basic validations that come from the model (e.g. field length), but there is often need for custom validations. Custom, single-field validators are just callables that raise an error if validation fails:
+    ```python
+    # core/validators.py
+    from django.core.exceptions import ValidationError
+    def validate_tasty(value):
+    """Raise a ValidationError if the value doesn't start with the
+           word 'Tasty'.
+       """
+    if not value.startswith('Tasty'):
+        msg = 'Must start with Tasty' 
+        raise ValidationError(msg)
+    
+    # models.py
+    # Attach it to a fields with the validators kwarg:
+    from .validators import validate_tasty
+
+    Class foo(models.Model):
+        bar = models.Charfield(max_lenth=20, validators=[validate_tasty])
+
+    ```
+    This can also be placed in a Abstract base model (e.g. a title field) and make all other models that need that validation inherit from it.
+
+* Custom validators can be attached at form, not model level (e.g. having only some forms require certain validations). Also, they can be added to any field:
+    ```python
+    class SampleForm(forms.ModelForm):
+        def __init__(self, *args, **kwargs):
+            super(SampleForm, self).__init__(*args, **kwargs)
+            self.fields['title'].validators.append(validate_tasty)
+            self.fields['age'].validators.append(validate_tasty)
+
+        class Meta:
+            model = Foo
+    ```
+
+* If we want to use that form with a GCBV (that usually creates the form from the model attribute), we explicitly override it with our form with the `form_class` attribute
+    ```python
+    class Foo(models.UpdateView):
+        model = bar
+        form_class = SampleForm
+    ```  
+    The Foo view now uses the SampleForm for validations
+
+* `def clean_FIELDNAME()` can be defined for field-specific validations in forms after initial validations when the data has already been cleaned. Clean data can be accessed from the `self.cleaned_data[FIELD_NAME]` attribute.
+    ```python
+    def clean_title(self):
+        title = clean_data['title']
+        
+        # Get the object with this title and do the validation
+        if Foo.objects.get(title=title).age < 5:
+            raise ValidationError('blah')
+
+        return title
+    ```
+* Use the `clean()` method for making interdependant, multi-field validations
+    ```python
+    class Foo(forms.ModelForm):
+        def clean(self):
+            cleaned_data = super(Foo, self).clean()
+            x = cleaned_data.get('x')
+            y = cleaned_data.get('y')
+
+            if x != y:
+                raise ValidationError('Blah')
+    ```
+* Chapter 11.4 - Two Forms, Two views, one model
+
 ## Templates
 #### Variables
 In Django templates, the context is passed in as a dict-like object. The values can be all sorts of python objects - dicts, objects, lists, etc. Lookups for dicts, objects and lists is done using dot notation, so this works in templates:  
@@ -241,6 +307,11 @@ Outputs: Hello (as actual h1 element)
 ```
 
 ##### AJAX Requests
+1. Create a view function and route that to an url or modify that dispatch() function in a CBV to handle ajax
+2. Write the ajax function - parse the values from DOM that you want to pass to the server and pass them as JSON
+3. In the view function, do stuff and return a serialized JSON
+4. In handle the response client side
+
 ```javascript
 // Use js-cookie lib to get the csrf token
 var csrftoken = Cookies.get('csrftoken');
@@ -284,8 +355,8 @@ from django.http import JsonResponse
         resp = super(MediaPlanDeleteView, self).dispatch(*args, **kwargs)
         if self.request.is_ajax():
             self.delete(*args, **kwargs) # Actually call the delete method to delete stuff
-            response_data = {"result": "ok"}
-            return JsonResponse(response_data)
+            response_data = serializ{"result": "ok"}
+            return JsonResponse(serializers.serialize('json', response_data))
         else:
             return resp
 
@@ -306,16 +377,48 @@ def check_rights(request):
 ```
 We can also use this to e.g. add custom errors to the request object etc.
 
+## Mixins
+Mixins can be used to define certain functionality and then append that to the views, that inherit from the mixin. Important is to place the base view to the far left and the mixins to the right. Mixins help to keep code DRY. Basically override any function and the classes that inherit from the Mixin also inherit that function.
+```python
+class BannerTypeMixin:
+
+        """Rewrite dispatch to handle ajax request and respond with a JSON
+        that provides a list of banner sizes that are applicable for that media        
+        """
+        
+    def dispatch(self, *args, **kwargs):
+        response = super(BannerTypeMixin, self).dispatch(*args, **kwargs)
+        if self.request.is_ajax():
+            media_id = self.request.GET.get('media_id')
+            if media_id:
+                qs = BannerType.objects.filter(media__pk=media_id)
+            else:
+                qs = BannerType.objects.all()
+            qs_json = serializers.serialize('json', qs)
+            response_data = {"result": qs_json}
+            return JsonResponse(response_data)
+        else:
+            return response   
+
+class MediaPlanCreateView(BannerTypeMixin , CreateView):
+    pass
+
+class MediaPlanUpdateView(BannerTypeMixin, UpdateView):
+    pass
+```
+
+
 ## General Best Practices
 * An app should do one thing and do it well
 * For the sake of clarity, the app's name should be a plural version of the app's main model. e.g. Events (app) --> Event (model)
 and if possible, follow the URL structure (and vice versa): http://www.my-project.com/events/
 * Keep the number of Models per app as small as possible. If there are a lot of models then you are probably breaking rule #1
 * For repeating fields, use Model Inheritance and Abstract Base Models (A class that inherits from models.Model and other models inherit from this new class) - tables will not be created for the ABM's, but for their children
-
+* Debugging - install instructions for [Django debug toolbar](https://django-debug-toolbar.readthedocs.io/en/stable/installation.html)
 
 # TODO:
-* ManyToMany fields
+* ManyToMany fields - Check Youtube
 * User model and logins
 * Testing django
-* mixins and auth/contib module. messages
+* auth/contib module. messages
+* Vars in urlconfs etc. where do they come from?

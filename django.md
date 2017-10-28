@@ -294,6 +294,12 @@ Outputs: <h1>Hello</h1>
 Outputs: Hello (as actual h1 element) 
 
 ```
+* Template inheritance  - get comfortable with `{% extends %} | {% block NAME %} || {% block.super %}`. Just `{% block NAME %}` will replace a block while calling `{% block.super %}` will extend the block, including the original content.
+* A good practice is to start and end blocks with their names, for clarity: `{% block title %} ...stuff.... {% endblock title %}`. This way it is clear what block is being closed.
+* In templates, model name can be used instead on object e.g. for Foo model, both will work `{% for f in object_list | for f in foo_list %}`. Although, while object will work anywhere, it is better for code reuse.
+* **USE NAMESPACED URLS INSTEAD OF HARDCODED ONES**
+
+
 
 [Template language overview](https://docs.djangoproject.com/en/1.11/topics/templates/#the-django-template-language)  
 
@@ -407,6 +413,13 @@ class MediaPlanUpdateView(BannerTypeMixin, UpdateView):
     pass
 ```
 
+## The User model
+[Quick tutorial](https://simpleisbetterthancomplex.com/tutorial/2016/06/27/how-to-use-djangos-built-in-login-system.html)
+* Make sure the `LOGIN_URL` and `LOGIN | LOGOUT_REDIRECT_URL` in settings is defined
+* In views do `from django.contrib.auth import views as auth_views`, subclass the required views e.g. `LoginView, LogoutView`
+and update the required parameters, e.g template_name. [All authentication views](https://docs.djangoproject.com/en/1.11/topics/auth/default/#all-authentication-views)
+* After that, make/update a template, wire views to URLs and basically login/logout is good to go
+
 
 ## General Best Practices
 * An app should do one thing and do it well
@@ -418,7 +431,7 @@ and if possible, follow the URL structure (and vice versa): http://www.my-projec
 
 # TODO:
 * ManyToMany fields - Check Youtube
-* User model and logins
+* User model - permissions on app side!
 * Testing django
 * auth/contib module. messages
 * Vars in urlconfs etc. where do they come from?

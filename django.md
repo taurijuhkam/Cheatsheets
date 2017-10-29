@@ -112,6 +112,35 @@ But do not create god objects - if applicable, move to (stateless!!) helper func
     Mediaplan.objects.filter(media__pk=1)
 
     ```
+* Models, witch have a ManyToManyField defined, there the related table can be accesseed by `model.FIELDNAME.all()` - on the other model, the other end of the relationship is added to the `MODEL_set` field:  
+    ```python
+    class Publication(models.Model):
+        title = models.CharField(max_length=30)
+
+
+    class Article(models.Model):
+        headline = models.CharField(max_length=100)
+        publications = models.ManyToManyField(Publication)
+
+    ## So here, we can traverse objects like
+    art = Article()
+    pub = Publication()
+    
+    # Get all publications where this article is shown
+    art.publications.all()
+    # Add an article to a publication
+    art.publications.add(pub)
+    # Create a new publication and add it to this article
+    art.publications.create('publication title')
+
+    # Get all articles in this publication:
+    pub.article_set.all()
+    # Adding via the other end:
+    pub.article_set.add(art)
+    # Create an article and add it to this publication
+    pub.article_set.create('article headline')
+    ```
+    [More about ManyToMany](https://docs.djangoproject.com/en/1.11/topics/db/examples/many_to_many/)
 
 ## Views
 * Use get_object_or_404() in views! This handles exceptions with grace and usually does what is expected
@@ -141,18 +170,18 @@ But do not create god objects - if applicable, move to (stateless!!) helper func
 ##### Class Based Views
 * All CBV's at base level should inherit from `django.views.generic.View`
 * [Detailed descriptions of GCBVs](http://ccbv.co.uk/)
-* Nifty trickwhen overriding methods - write custom logig, then give the resolution back to the generic view with super;
+* Nifty trick when overriding methods - write custom logic, then give the resolution back to the generic view with super:
     ```python
     from django.contrib.auth.mixins import LoginRequiredMixin 
     from django.views.generic import CreateView
     from .models import Flavor
     class FlavorCreateView(LoginRequiredMixin, CreateView): 
         model = Flavor
-       fields = ['title', 'slug', 'scoops_remaining']
+        fields = ['title', 'slug', 'scoops_remaining']
 
-    def form_valid(self, form):
-        # Do custom logic here
-        return super(FlavorCreateView, self).form_valid(form)
+        def form_valid(self, form):
+            # Do custom logic here
+            return super(FlavorCreateView, self).form_valid(form)
     ```
 * For views that require logging in, we can use the LoginRequiredMixin instead of messing with the decorators:
     ```python
@@ -243,22 +272,27 @@ but CBV's are in that way cleaner.
                 raise ValidationError('Blah')
     ```
 * Chapter 11.4 - Two Forms, Two views, one model
-
+* [Django Crispy Forms - Control the rendering of forms](http://django-crispy-forms.readthedocs.io/en/latest/)
 ## Templates
 #### Variables
-In Django templates, the context is passed in as a dict-like object. The values can be all sorts of python objects - dicts, objects, lists, etc. Lookups for dicts, objects and lists is done using dot notation, so this works in templates:  
+In Django templates, the context is passed in as a dict-like object. The values can be all sorts of python objects - dicts, objects, lists, etc. Lookups for dicts, objects, lists and even callables is done using dot notation, so this works in templates:  
 ```python
 
 class TestObject(object):
     def __init__(self, foo):
         self.foo = foo
 
+    def bar(self):
+        return {'foobar': 'blah'}
+
+
 context = {
     'title_text': 'My site is cool',
     'headcount': {'male': 10, 'female': 15},
     'sample_object': TestObject('kala'),
     'sample_list': ['zero', 'one', 'two', 'three'],
-    'html': '<h1>Hello</h1>'
+    'html': '<h1>Hello</h1>',
+    'foo': bar(),
 }
 ```
 ```html
@@ -270,6 +304,8 @@ Outputs: 15
 Outputs: kala
 <div>{{ sample_list.1 }}</div> 
 Outputs: one
+<div>{{ sample_list.foo.foobar }}</div> 
+Outputs: blah
 ```
 
 #### Tags
@@ -415,11 +451,58 @@ class MediaPlanUpdateView(BannerTypeMixin, UpdateView):
 
 ## The User model
 [Quick tutorial](https://simpleisbetterthancomplex.com/tutorial/2016/06/27/how-to-use-djangos-built-in-login-system.html)
-* Make sure the `LOGIN_URL` and `LOGIN | LOGOUT_REDIRECT_URL` in settings is defined
+* Make sure the `LOGIN_URL` and `LOGIN_ | LOGOUT_REDIRECT_URL` in settings is defined
 * In views do `from django.contrib.auth import views as auth_views`, subclass the required views e.g. `LoginView, LogoutView`
 and update the required parameters, e.g template_name. [All authentication views](https://docs.djangoproject.com/en/1.11/topics/auth/default/#all-authentication-views)
 * After that, make/update a template, wire views to URLs and basically login/logout is good to go
+* When working in views/classes, the current user object is accessible via `self.request.user`
+* [Basic permissions handling](https://docs.djangoproject.com/en/1.11/topics/auth/default/#permissions-and-authorization) - is handled as follows:
+    ```python
+    # with model app_name Foo and model BAR
+    user.has_perm('foo.add_bar')
+    user.has_perm('foo.change_bar')
+    user.has_perm('foo.delete_bar')
+    ```
+* When checking fo e.g. usert groups and permissions, then it's better to do the validations in the views and add a variable to the context - this allows us to keep templates cleaner (not checking for multiple conditions and not traversing many objects in templates)
+    ```python
+    groups = self.request.user.groups.all()
+    if groups:
+        if groups.first().name == 'Advertiser':
+            context['is_advertiser'] = True
+    else:
+        context['is_advertiser'] = False
+    ```
 
+## URL's
+* [URLs overview](https://docs.djangoproject.com/en/1.11/topics/http/urls/)
+* **A gotcha in URLS**  
+    The `(?P<pk>[0-9]+)$'..)` part is a named regular expression group. Anything in a **named regular expression group** will be passed on to the view class/function as a named argument. Anything that was not a named regex group, will be passed as a positional argument:
+    ```python
+    url(r'^articles/([0-9]{4})/([0-9]{2})/$', views.month_archive),
+    # '/articles/2003/15' --> views.month_archive(request, '2003', '15')
+    url(r'^articles/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/$', views.month_archive),
+    # '/articles/2003/15' --> views.month_archive(request, year='2003', month='15')
+    ```
+    **NB:** This is why we define all method we overwrite with (*args, **kwargs) - so that everything that came from an URL will be passed on
+* **Captured arguments are always strings**
+* To capture a value from the URL, just put parenthesis around it
+* No need for leading slashes
+* Use `r'^..'` for regexes so that Python knows its a raw string and does not do any escaping etc.
+* Nifty trick is to provide default values in functions for the captured arguments, if applicable:
+    ```python
+    # url(r'^example/(?P<year>[0-9]{4})')
+    def year_view(request, year=2000):
+        #do stuff
+    ```
+* GET and POST requests are not treated the same as keywords/positional arguments in URLS. So in `www.example.com/myapp?page=3` the `page` is not a keyword argument, that can readily be used, but must first be captured with m `request.GET.get('page')`
+
+
+## Testing Django
+* Look into [Coverage.py](https://coverage.readthedocs.io/en/coverage-4.4.1/)
+* Delete the `tests.py` that Django creates and instead, create a tests directory with separate files for each module, e.g. `test_forms.py, test_admin.py` etc...
+* KISS - only cover the functionality of a single view, model, function etc. 
+* Learn to use the **Mock** library
+* Look into [Pytest-django](https://pypi.python.org/pypi/pytest-django/)
 
 ## General Best Practices
 * An app should do one thing and do it well
@@ -428,10 +511,11 @@ and if possible, follow the URL structure (and vice versa): http://www.my-projec
 * Keep the number of Models per app as small as possible. If there are a lot of models then you are probably breaking rule #1
 * For repeating fields, use Model Inheritance and Abstract Base Models (A class that inherits from models.Model and other models inherit from this new class) - tables will not be created for the ABM's, but for their children
 * Debugging - install instructions for [Django debug toolbar](https://django-debug-toolbar.readthedocs.io/en/stable/installation.html)
+* Look for [Logging tutorials](https://docs.python.org/3/howto/logging.html#advanced-logging-tutorial)
+* Install [Sphinx](http://www.sphinx-doc.org/en/stable/) and look into using **reStructuredText (RST)**
+
+
 
 # TODO:
-* ManyToMany fields - Check Youtube
-* User model - permissions on app side!
-* Testing django
+
 * auth/contib module. messages
-* Vars in urlconfs etc. where do they come from?
